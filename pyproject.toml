@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mobility-pulse"
+version = "0.1.0"
+description = "CDMX Mobility Pulse: ingest, validate, analyze and visualize mobility data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "CDMX Mobility Pulse Contributors"}]
+keywords = ["mobility", "urban-planning", "geospatial", "data-analysis", "transportation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "pandas>=2.1",
+    "pyarrow>=14.0",
+    "requests>=2.31",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "geopandas>=0.14",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "h3>=3.7",
+    "pandera>=0.17",
+    "streamlit>=1.28",
+    "plotly>=5.18",
+    "kaleido>=0.2",
+    "reportlab>=4.0",
+    "scikit-learn>=1.4",
+    "xgboost>=2.0",
+    "lightgbm>=4.3",
+    "catboost>=1.2",
+    "statsmodels>=0.14",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.3",
+    "pytest>=7.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mobility_pulse*"]

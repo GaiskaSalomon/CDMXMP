@@ -1,0 +1,29 @@
+# Dataset endpoints (override any URL with env vars: MOBILITY_PULSE_<NAME>_URL)
+# Example: MOBILITY_PULSE_GTFS_URL=https://.../gtfs.zip
+
+gtfs:
+  url: https://datos.cdmx.gob.mx/dataset/75538d96-3ade-4bc5-ae7d-d85595e4522d/resource/32ed1b6b-41cd-49b3-b7f0-b57acb0eb819/download/gtfs.zip
+  description: CDMX GTFS static feed (zip)
+
+c5:
+  url: https://archivo.datos.cdmx.gob.mx/C5/incidentes_viales/inViales_2022_2024.csv
+  description: CDMX C5 road incidents
+
+ecobici_rt:
+  url: https://gbfs.mex.lyftbikes.com/gbfs/gbfs.json
+  description: ECOBICI GBFS feed root (station_information + station_status)
+
+ecobici_trips:
+  url: https://ecobici.cdmx.gob.mx/wp-content/uploads/2026/01/2025-12.csv
+  description: ECOBICI historical trips
+
+gps_cdmx:
+  url: https://datos.cdmx.gob.mx/api/3/action/package_search
+  description: CKAN API base for CDMX open data (GPS keyword search)
+  keywords:
+    - gps
+    - geolocalizacion
+    - geolocalización
+    - trayectos
+    - recorridos
+    - movilidad

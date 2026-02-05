@@ -1,0 +1,32 @@
+# Core
+pandas>=2.1
+pyarrow>=14.0
+requests>=2.31
+pyyaml>=6.0
+python-dotenv>=1.0
+
+# Geo
+geopandas>=0.14
+shapely>=2.0
+pyproj>=3.6
+h3>=3.7
+
+# Validation
+pandera>=0.17
+
+# App/Viz
+streamlit>=1.28
+plotly>=5.18
+kaleido>=0.2
+reportlab>=4.0
+
+# ML/Forecast
+scikit-learn>=1.4
+xgboost>=2.0
+lightgbm>=4.3
+catboost>=1.2
+statsmodels>=0.14
+
+# Tooling
+ruff>=0.3
+pytest>=7.4
