@@ -27,8 +27,12 @@ def standardize_c5() -> Path | None:
         return None
 
     # Common column guesses with priority ordering
-    date_candidates = [c for c in df.columns if "fecha" in c.lower() or "date" in c.lower()]
-    time_candidates = [c for c in df.columns if "hora" in c.lower() or "time" in c.lower()]
+    date_candidates = [
+        c for c in df.columns if "fecha" in c.lower() or "date" in c.lower()
+    ]
+    time_candidates = [
+        c for c in df.columns if "hora" in c.lower() or "time" in c.lower()
+    ]
 
     def _pick(cols: list[str], preferred: list[str]) -> str | None:
         lower_map = {c.lower(): c for c in cols}
@@ -38,12 +42,15 @@ def standardize_c5() -> Path | None:
         return cols[0] if cols else None
 
     lat_candidates = [
-        c for c in df.columns if c.lower() in {"lat", "latitud", "latitude"} or c.lower().startswith("lat")
+        c
+        for c in df.columns
+        if c.lower() in {"lat", "latitud", "latitude"} or c.lower().startswith("lat")
     ]
     lon_candidates = [
         c
         for c in df.columns
-        if c.lower() in {"lon", "lng", "longitud", "longitude"} or c.lower().startswith("lon")
+        if c.lower() in {"lon", "lng", "longitud", "longitude"}
+        or c.lower().startswith("lon")
     ]
 
     ts_col = date_candidates[0] if date_candidates else None
@@ -61,7 +68,9 @@ def standardize_c5() -> Path | None:
 
     if ts_col and time_col:
         df["timestamp"] = pd.to_datetime(
-            df[ts_col].astype(str).str.strip() + " " + df[time_col].astype(str).str.strip(),
+            df[ts_col].astype(str).str.strip()
+            + " "
+            + df[time_col].astype(str).str.strip(),
             errors="coerce",
             dayfirst=dayfirst,
         )
@@ -124,9 +133,13 @@ def standardize_ecobici_rt() -> Path | None:
     df["source"] = "ecobici_rt"
 
     if "bikes_available" not in df.columns and "num_bikes_available" in df.columns:
-        df["bikes_available"] = pd.to_numeric(df["num_bikes_available"], errors="coerce")
+        df["bikes_available"] = pd.to_numeric(
+            df["num_bikes_available"], errors="coerce"
+        )
     if "docks_available" not in df.columns and "num_docks_available" in df.columns:
-        df["docks_available"] = pd.to_numeric(df["num_docks_available"], errors="coerce")
+        df["docks_available"] = pd.to_numeric(
+            df["num_docks_available"], errors="coerce"
+        )
 
     df = add_zone_id(df, lat_col="lat", lon_col="lon")
 
@@ -148,20 +161,36 @@ def standardize_ecobici_trips() -> Path | None:
     end_date = next((c for c in df.columns if "fecha_arribo" in c.lower()), None)
     end_time = next((c for c in df.columns if "hora_arribo" in c.lower()), None)
 
-    start_ts = next((c for c in df.columns if "start" in c.lower() and "time" in c.lower()), None)
-    end_ts = next((c for c in df.columns if "end" in c.lower() and "time" in c.lower()), None)
+    start_ts = next(
+        (c for c in df.columns if "start" in c.lower() and "time" in c.lower()), None
+    )
+    end_ts = next(
+        (c for c in df.columns if "end" in c.lower() and "time" in c.lower()), None
+    )
     start_station = next(
-        (c for c in df.columns if "estacion_retiro" in c.lower() or ("start" in c.lower() and "station" in c.lower())),
+        (
+            c
+            for c in df.columns
+            if "estacion_retiro" in c.lower()
+            or ("start" in c.lower() and "station" in c.lower())
+        ),
         None,
     )
     end_station = next(
-        (c for c in df.columns if "estacionarribo" in c.lower() or ("end" in c.lower() and "station" in c.lower())),
+        (
+            c
+            for c in df.columns
+            if "estacionarribo" in c.lower()
+            or ("end" in c.lower() and "station" in c.lower())
+        ),
         None,
     )
 
     if start_date and start_time:
         df["timestamp"] = pd.to_datetime(
-            df[start_date].astype(str).str.strip() + " " + df[start_time].astype(str).str.strip(),
+            df[start_date].astype(str).str.strip()
+            + " "
+            + df[start_time].astype(str).str.strip(),
             errors="coerce",
             dayfirst=True,
         )
@@ -172,7 +201,9 @@ def standardize_ecobici_trips() -> Path | None:
 
     if end_date and end_time:
         df["end_timestamp"] = pd.to_datetime(
-            df[end_date].astype(str).str.strip() + " " + df[end_time].astype(str).str.strip(),
+            df[end_date].astype(str).str.strip()
+            + " "
+            + df[end_time].astype(str).str.strip(),
             errors="coerce",
             dayfirst=True,
         )
@@ -311,9 +342,13 @@ def standardize_gps() -> Path | None:
         LOGGER.warning("Unsupported GPS file format: %s", path)
         return None
 
-    ts_col = next((c for c in df.columns if "time" in c.lower() or "fecha" in c.lower()), None)
+    ts_col = next(
+        (c for c in df.columns if "time" in c.lower() or "fecha" in c.lower()), None
+    )
     lat_col = next((c for c in df.columns if "lat" in c.lower()), None)
-    lon_col = next((c for c in df.columns if "lon" in c.lower() or "lng" in c.lower()), None)
+    lon_col = next(
+        (c for c in df.columns if "lon" in c.lower() or "lng" in c.lower()), None
+    )
 
     df["timestamp"] = pd.to_datetime(df[ts_col], errors="coerce") if ts_col else pd.NaT
     df["lat"] = pd.to_numeric(df[lat_col], errors="coerce") if lat_col else pd.NA

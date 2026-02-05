@@ -5,7 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 import shutil
 
-from mobility_pulse.config import ANALYTICS_DIR, PROCESSED_DIR, RAW_DIR, REPORTS_DIR, ROOT_DIR
+from mobility_pulse.config import (
+    ANALYTICS_DIR,
+    PROCESSED_DIR,
+    RAW_DIR,
+    REPORTS_DIR,
+    ROOT_DIR,
+)
 
 
 def _remove_path(path: Path) -> None:

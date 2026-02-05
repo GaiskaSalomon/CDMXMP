@@ -48,13 +48,17 @@ def build_analytics() -> dict[str, Path]:
     stops_df = _load_optional(PROCESSED_DIR / "gtfs_stops.parquet")
     c5_df = _load_optional(PROCESSED_DIR / "c5_incidents.parquet")
     if stops_df is not None and "zone_id" in stops_df.columns:
-        stops_counts = stops_df.groupby("zone_id", dropna=False).size().reset_index(name="stops")
+        stops_counts = (
+            stops_df.groupby("zone_id", dropna=False).size().reset_index(name="stops")
+        )
         zone_ids = set(stops_counts["zone_id"].dropna().astype(str))
         if c5_df is not None and "zone_id" in c5_df.columns:
             zone_ids |= set(c5_df["zone_id"].dropna().astype(str))
         if zone_ids:
             zones_df = pd.DataFrame({"zone_id": sorted(zone_ids)})
-            stops_counts = zones_df.merge(stops_counts, on="zone_id", how="left").fillna({"stops": 0})
+            stops_counts = zones_df.merge(
+                stops_counts, on="zone_id", how="left"
+            ).fillna({"stops": 0})
 
             max_stops = stops_counts["stops"].max() or 1
             stops_counts["stops_norm"] = stops_counts["stops"] / max_stops
@@ -110,23 +114,33 @@ def build_analytics() -> dict[str, Path]:
                 if found_k is None:
                     found_k = max_k + 1
                 rings.append(found_k)
-                res = h3.get_resolution(cell) if hasattr(h3, "get_resolution") else h3.h3_get_resolution(cell)
+                res = (
+                    h3.get_resolution(cell)
+                    if hasattr(h3, "get_resolution")
+                    else h3.h3_get_resolution(cell)
+                )
                 distances.append(found_k * _edge_length_m(int(res)))
 
             stops_counts["nearest_stop_ring"] = rings
             stops_counts["access_distance_m"] = distances
 
             max_dist = stops_counts["access_distance_m"].max() or 1
-            stops_counts["distance_norm"] = 1 - (stops_counts["access_distance_m"] / max_dist)
+            stops_counts["distance_norm"] = 1 - (
+                stops_counts["access_distance_m"] / max_dist
+            )
             walk_speed_m_min = 80.0
-            stops_counts["travel_time_min"] = stops_counts["access_distance_m"] / walk_speed_m_min
+            stops_counts["travel_time_min"] = (
+                stops_counts["access_distance_m"] / walk_speed_m_min
+            )
             stops_counts["iso_bucket"] = pd.cut(
                 stops_counts["travel_time_min"],
                 bins=[-0.1, 5, 10, 15, 30, 60, float("inf")],
                 labels=["<=5", "5-10", "10-15", "15-30", "30-60", "60+"],
             ).astype(str)
 
-            stops_counts["access_score"] = (0.7 * stops_counts["stops_norm"]) + (0.3 * stops_counts["distance_norm"])
+            stops_counts["access_score"] = (0.7 * stops_counts["stops_norm"]) + (
+                0.3 * stops_counts["distance_norm"]
+            )
             mean = stops_counts["access_score"].mean()
             std = stops_counts["access_score"].std(ddof=0) or 1
             stops_counts["access_z"] = (stops_counts["access_score"] - mean) / std
@@ -137,12 +151,20 @@ def build_analytics() -> dict[str, Path]:
 
             # Impact index: high incidents + low access
             if c5_df is not None and "zone_id" in c5_df.columns:
-                inc_counts = c5_df.groupby("zone_id", dropna=False).size().reset_index(name="incidents")
-                impact = stops_counts.merge(inc_counts, on="zone_id", how="left").fillna({"incidents": 0})
+                inc_counts = (
+                    c5_df.groupby("zone_id", dropna=False)
+                    .size()
+                    .reset_index(name="incidents")
+                )
+                impact = stops_counts.merge(
+                    inc_counts, on="zone_id", how="left"
+                ).fillna({"incidents": 0})
                 inc_mean = impact["incidents"].mean()
                 inc_std = impact["incidents"].std(ddof=0) or 1
                 impact["incidents_z"] = (impact["incidents"] - inc_mean) / inc_std
-                impact["impact_score"] = impact["incidents_z"] * (1 - impact["access_score"])
+                impact["impact_score"] = impact["incidents_z"] * (
+                    1 - impact["access_score"]
+                )
                 impact_path = ANALYTICS_DIR / "impact_zones.parquet"
                 impact.to_parquet(impact_path, index=False)
                 output_paths["impact_zones"] = impact_path
@@ -201,16 +223,24 @@ def build_analytics() -> dict[str, Path]:
                 daily_path = ANALYTICS_DIR / "c5_daily.parquet"
                 anomalies_path = ANALYTICS_DIR / "c5_anomalies.parquet"
                 daily_counts.to_parquet(daily_path, index=False)
-                daily_counts.sort_values("zscore", ascending=False).head(14).to_parquet(anomalies_path, index=False)
+                daily_counts.sort_values("zscore", ascending=False).head(14).to_parquet(
+                    anomalies_path, index=False
+                )
                 output_paths["c5_daily"] = daily_path
                 output_paths["c5_anomalies"] = anomalies_path
 
             stops_df = _load_optional(PROCESSED_DIR / "gtfs_stops.parquet")
             if stops_df is not None and "zone_id" in stops_df.columns:
-                stops_counts = stops_df.groupby("zone_id", dropna=False).size().rename("stops")
-                inc_counts = zone_counts.set_index("zone_id")["count"].rename("incidents")
+                stops_counts = (
+                    stops_df.groupby("zone_id", dropna=False).size().rename("stops")
+                )
+                inc_counts = zone_counts.set_index("zone_id")["count"].rename(
+                    "incidents"
+                )
                 pressure = pd.concat([inc_counts, stops_counts], axis=1).fillna(0)
-                pressure["incidents_per_stop"] = pressure["incidents"] / (pressure["stops"] + 1)
+                pressure["incidents_per_stop"] = pressure["incidents"] / (
+                    pressure["stops"] + 1
+                )
                 mean = pressure["incidents_per_stop"].mean()
                 std = pressure["incidents_per_stop"].std(ddof=0) or 1
                 pressure["risk_z"] = (pressure["incidents_per_stop"] - mean) / std
@@ -252,8 +282,12 @@ def build_analytics() -> dict[str, Path]:
         # Risk ranking proxy: incidents per stop with z-score
         stops_df = _load_optional(PROCESSED_DIR / "gtfs_stops.parquet")
         if stops_df is not None and "zone_id" in stops_df.columns:
-            stops_counts = stops_df.groupby("zone_id", dropna=False).size().rename("stops")
-            inc_counts = gps_like_zones.set_index("zone_id")["count"].rename("incidents")
+            stops_counts = (
+                stops_df.groupby("zone_id", dropna=False).size().rename("stops")
+            )
+            inc_counts = gps_like_zones.set_index("zone_id")["count"].rename(
+                "incidents"
+            )
             risk = pd.concat([inc_counts, stops_counts], axis=1).fillna(0)
             risk["incidents_per_stop"] = risk["incidents"] / (risk["stops"] + 1)
             mean = risk["incidents_per_stop"].mean()
@@ -268,7 +302,11 @@ def build_analytics() -> dict[str, Path]:
         if not top.empty:
             top["weight"] = top["count"] / top["count"].sum()
             od = top.merge(top, how="cross", suffixes=("_o", "_d"))
-            od["flow"] = (od["weight_o"] * od["weight_d"] * top["count"].sum()).round(0).astype(int)
+            od["flow"] = (
+                (od["weight_o"] * od["weight_d"] * top["count"].sum())
+                .round(0)
+                .astype(int)
+            )
             od = od[["zone_id_o", "zone_id_d", "flow"]]
             od.to_parquet(gps_like_od_path, index=False)
             output_paths["gps_like_od"] = gps_like_od_path

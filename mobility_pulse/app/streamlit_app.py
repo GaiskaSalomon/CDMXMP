@@ -8,13 +8,12 @@ import html
 
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
 import h3
 import requests
 import streamlit as st
 
-from mobility_pulse.config import ANALYTICS_DIR, CDMX_BBOX, PROCESSED_DIR
+from mobility_pulse.config import ANALYTICS_DIR, PROCESSED_DIR
 from mobility_pulse.app.ui_utils import (
     apply_plotly_theme,
     export_dataframe_to_csv,
@@ -25,10 +24,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'https://github.com/YOUR_USERNAME/CDMXMP',
-        'Report a bug': 'https://github.com/YOUR_USERNAME/CDMXMP/issues',
-        'About': "# CDMX Mobility Pulse\nUrban mobility intelligence platform\n\nVersion 0.1.0"
-    }
+        "Get Help": "https://github.com/YOUR_USERNAME/CDMXMP",
+        "Report a bug": "https://github.com/YOUR_USERNAME/CDMXMP/issues",
+        "About": "# CDMX Mobility Pulse\nUrban mobility intelligence platform\n\nVersion 0.1.0",
+    },
 )
 
 st.markdown(
@@ -346,9 +345,11 @@ st.markdown(
 )
 
 
-def _empty_state(icon: str, title: str, message: str, action: str | None = None) -> None:
+def _empty_state(
+    icon: str, title: str, message: str, action: str | None = None
+) -> None:
     """Render a professional empty state component."""
-    action_html = f'<div class="empty-state-action">{action}</div>' if action else ''
+    action_html = f'<div class="empty-state-action">{action}</div>' if action else ""
     st.markdown(
         f"""
         <div class="empty-state">
@@ -366,7 +367,11 @@ def _data_freshness_badge() -> str:
     """Calculate and return a freshness status badge for the data."""
     incidents_path = PROCESSED_DIR / "c5_incidents.parquet"
     incidents = _load_parquet(incidents_path)
-    if incidents is not None and not incidents.empty and "timestamp" in incidents.columns:
+    if (
+        incidents is not None
+        and not incidents.empty
+        and "timestamp" in incidents.columns
+    ):
         try:
             latest = pd.to_datetime(incidents["timestamp"]).max()
             age_hours = (pd.Timestamp.now() - latest).total_seconds() / 3600
@@ -376,11 +381,17 @@ def _data_freshness_badge() -> str:
                     latest.strftime("%Y-%m-%d")
                 )
             if age_hours < 24:
-                return '<span class="badge status-badge-fresh">🟢 Actualizado ({:.0f}h)</span>'.format(age_hours)
+                return '<span class="badge status-badge-fresh">🟢 Actualizado ({:.0f}h)</span>'.format(
+                    age_hours
+                )
             elif age_hours < 72:
-                return '<span class="badge status-badge-recent">🟡 Reciente ({:.0f}h)</span>'.format(age_hours)
+                return '<span class="badge status-badge-recent">🟡 Reciente ({:.0f}h)</span>'.format(
+                    age_hours
+                )
             else:
-                return '<span class="badge status-badge-stale">🔴 Desactualizado ({:.0f}h)</span>'.format(age_hours)
+                return '<span class="badge status-badge-stale">🔴 Desactualizado ({:.0f}h)</span>'.format(
+                    age_hours
+                )
         except Exception:
             pass
     return '<span class="badge">⚪ Desconocido</span>'
@@ -398,7 +409,9 @@ def _tooltip_details(text: str) -> str:
     )
 
 
-def _metric_with_tooltip(label: str, value: str, tooltip: str, delta: float | None = None) -> None:
+def _metric_with_tooltip(
+    label: str, value: str, tooltip: str, delta: float | None = None
+) -> None:
     """Render a KPI card with tooltip information."""
     delta_html = ""
     if delta is not None:
@@ -483,8 +496,7 @@ def _display_df(df: pd.DataFrame) -> pd.DataFrame:
         "rationale": "Justificación",
     }
     if "day_of_week" in df.columns:
-        df["day_of_week"] = df["day_of_week"].map(
-            day_map).fillna(df["day_of_week"])
+        df["day_of_week"] = df["day_of_week"].map(day_map).fillna(df["day_of_week"])
     df = df.rename(columns=rename_map)
     df.columns = [str(col).upper() for col in df.columns]
     # Eliminar columnas de zona ID ya que mostramos alcaldía/colonia
@@ -524,7 +536,9 @@ def _ensure_zone_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _merge_with_zone_meta(df: pd.DataFrame, zone_meta: pd.DataFrame, how: str = "left") -> pd.DataFrame:
+def _merge_with_zone_meta(
+    df: pd.DataFrame, zone_meta: pd.DataFrame, how: str = "left"
+) -> pd.DataFrame:
     """Hace un merge limpio con zone_meta, manejando columnas de zona duplicadas."""
     if df.empty or zone_meta.empty:
         return df
@@ -548,11 +562,10 @@ def _merge_with_zone_meta(df: pd.DataFrame, zone_meta: pd.DataFrame, how: str = 
         meta_zone_key = df_zone_key
 
     # Hacer merge usando 'on' para evitar columnas duplicadas
-    result = df.merge(zone_meta, on=df_zone_key,
-                      how=how, suffixes=('', '_meta'))
+    result = df.merge(zone_meta, on=df_zone_key, how=how, suffixes=("", "_meta"))
 
     # Eliminar columnas duplicadas con sufijo _meta
-    cols_to_drop = [col for col in result.columns if col.endswith('_meta')]
+    cols_to_drop = [col for col in result.columns if col.endswith("_meta")]
     if cols_to_drop:
         result = result.drop(columns=cols_to_drop)
 
@@ -629,8 +642,7 @@ def _load_zone_metadata_v4() -> pd.DataFrame:
         if "lon" in combined.columns and "longitud" not in combined.columns:
             agg_dict["lon"] = "mean"
 
-    zone_meta = combined.groupby(
-        zone_col, dropna=False).agg(agg_dict).reset_index()
+    zone_meta = combined.groupby(zone_col, dropna=False).agg(agg_dict).reset_index()
 
     # Renombrar columnas para estandarizar
     rename_dict = {zone_col: "zone_id"}
@@ -684,27 +696,47 @@ def _load_analytics() -> dict[str, pd.DataFrame]:
         "c5_hourly": _ensure(_load_parquet(ANALYTICS_DIR / "c5_hourly.parquet")),
         "c5_dow": _ensure(_load_parquet(ANALYTICS_DIR / "c5_dow.parquet")),
         "c5_monthly": _ensure(_load_parquet(ANALYTICS_DIR / "c5_monthly.parquet")),
-        "c5_hourly_total": _ensure(_load_parquet(ANALYTICS_DIR / "c5_hourly_total.parquet")),
+        "c5_hourly_total": _ensure(
+            _load_parquet(ANALYTICS_DIR / "c5_hourly_total.parquet")
+        ),
         "c5_dow_total": _ensure(_load_parquet(ANALYTICS_DIR / "c5_dow_total.parquet")),
-        "c5_zone_daily": _ensure(_load_parquet(ANALYTICS_DIR / "c5_zone_daily.parquet")),
+        "c5_zone_daily": _ensure(
+            _load_parquet(ANALYTICS_DIR / "c5_zone_daily.parquet")
+        ),
         "c5_daily": _ensure(_load_parquet(ANALYTICS_DIR / "c5_daily.parquet")),
         "c5_anomalies": _ensure(_load_parquet(ANALYTICS_DIR / "c5_anomalies.parquet")),
         "c5_pressure": _ensure(_load_parquet(ANALYTICS_DIR / "c5_pressure.parquet")),
-        "trips_hourly": _ensure(_load_parquet(ANALYTICS_DIR / "ecobici_trips_hourly.parquet")),
-        "trips_dow": _ensure(_load_parquet(ANALYTICS_DIR / "ecobici_trips_dow.parquet")),
-        "trips_monthly": _ensure(_load_parquet(ANALYTICS_DIR / "ecobici_trips_monthly.parquet")),
+        "trips_hourly": _ensure(
+            _load_parquet(ANALYTICS_DIR / "ecobici_trips_hourly.parquet")
+        ),
+        "trips_dow": _ensure(
+            _load_parquet(ANALYTICS_DIR / "ecobici_trips_dow.parquet")
+        ),
+        "trips_monthly": _ensure(
+            _load_parquet(ANALYTICS_DIR / "ecobici_trips_monthly.parquet")
+        ),
         "ecobici_trips_hourly_total": _ensure(
             _load_parquet(ANALYTICS_DIR / "ecobici_trips_hourly_total.parquet")
         ),
         "ecobici_trips_dow_total": _ensure(
             _load_parquet(ANALYTICS_DIR / "ecobici_trips_dow_total.parquet")
         ),
-        "gps_like_monthly": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_monthly.parquet")),
-        "gps_like_hourly": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_hourly.parquet")),
+        "gps_like_monthly": _ensure(
+            _load_parquet(ANALYTICS_DIR / "gps_like_monthly.parquet")
+        ),
+        "gps_like_hourly": _ensure(
+            _load_parquet(ANALYTICS_DIR / "gps_like_hourly.parquet")
+        ),
         "gps_like_dow": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_dow.parquet")),
-        "gps_like_zones": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_zones.parquet")),
-        "gps_like_zone_hour": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_zone_hour.parquet")),
-        "gps_like_risk": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_risk.parquet")),
+        "gps_like_zones": _ensure(
+            _load_parquet(ANALYTICS_DIR / "gps_like_zones.parquet")
+        ),
+        "gps_like_zone_hour": _ensure(
+            _load_parquet(ANALYTICS_DIR / "gps_like_zone_hour.parquet")
+        ),
+        "gps_like_risk": _ensure(
+            _load_parquet(ANALYTICS_DIR / "gps_like_risk.parquet")
+        ),
         "gps_like_od": _ensure(_load_parquet(ANALYTICS_DIR / "gps_like_od.parquet")),
         "accesoibility_zones": _ensure(_load_accessibility()),
         "impact_zones": _ensure(_load_parquet(ANALYTICS_DIR / "impact_zones.parquet")),
@@ -717,20 +749,27 @@ def _load_analytics() -> dict[str, pd.DataFrame]:
 
     if analytics["accesoibility_zones"].empty and not analytics["impact_zones"].empty:
         analytics["accesoibility_zones"] = analytics["impact_zones"].copy()
-    if not analytics["accesoibility_zones"].empty and "access_score" in analytics["accesoibility_zones"].columns:
+    if (
+        not analytics["accesoibility_zones"].empty
+        and "access_score" in analytics["accesoibility_zones"].columns
+    ):
         analytics["accesoibility_zones"] = analytics["accesoibility_zones"].rename(
             columns={"access_score": "acceso_score"}
         )
     return analytics
 
 
-def _apply_filters(df: pd.DataFrame, date_range: tuple[pd.Timestamp, pd.Timestamp], hours: list[int], days: list[str]) -> pd.DataFrame:
+def _apply_filters(
+    df: pd.DataFrame,
+    date_range: tuple[pd.Timestamp, pd.Timestamp],
+    hours: list[int],
+    days: list[str],
+) -> pd.DataFrame:
     if df.empty or "timestamp" not in df.columns:
         return df
     df = df.copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    mask = (df["timestamp"] >= date_range[0]) & (
-        df["timestamp"] <= date_range[1])
+    mask = (df["timestamp"] >= date_range[0]) & (df["timestamp"] <= date_range[1])
     if hours:
         mask &= df["timestamp"].dt.hour.isin(hours)
     if days:
@@ -742,14 +781,16 @@ def _apply_filters(df: pd.DataFrame, date_range: tuple[pd.Timestamp, pd.Timestam
             "Jueves": "Thursday",
             "Viernes": "Friday",
             "Sábado": "Saturday",
-            "Domingo": "Sunday"
+            "Domingo": "Sunday",
         }
         english_days = [day_map.get(day, day) for day in days]
         mask &= df["timestamp"].dt.day_name().isin(english_days)
     return df[mask]
 
 
-def _compute_zoom(min_lon: float, max_lon: float, min_lat: float, max_lat: float) -> float:
+def _compute_zoom(
+    min_lon: float, max_lon: float, min_lat: float, max_lat: float
+) -> float:
     span = max(max_lon - min_lon, max_lat - min_lat)
     if span <= 0:
         return 11
@@ -806,8 +847,7 @@ def _zone_heatmap(df: pd.DataFrame, value_col: str = "conteo") -> pd.DataFrame:
     zone_key = _get_zone_key(df)
     if not zone_key:
         return pd.DataFrame()
-    counts = df.groupby(zone_key, dropna=False).size(
-    ).reset_index(name=value_col)
+    counts = df.groupby(zone_key, dropna=False).size().reset_index(name=value_col)
     # Eliminar duplicados antes de apply
     counts = counts.loc[:, ~counts.columns.duplicated()]
     centers = counts[zone_key].apply(_h3_center)
@@ -816,22 +856,30 @@ def _zone_heatmap(df: pd.DataFrame, value_col: str = "conteo") -> pd.DataFrame:
     return counts.dropna(subset=["lat", "lon"])
 
 
-def _kpi_stats(df: pd.DataFrame, label: str, date_range: tuple[pd.Timestamp, pd.Timestamp]) -> dict[str, object]:
+def _kpi_stats(
+    df: pd.DataFrame, label: str, date_range: tuple[pd.Timestamp, pd.Timestamp]
+) -> dict[str, object]:
     if df.empty or "timestamp" not in df.columns:
-        return {"label": label, "conteo": 0, "delta": None, "peak_hour": None, "peak_day": None}
+        return {
+            "label": label,
+            "conteo": 0,
+            "delta": None,
+            "peak_hour": None,
+            "peak_day": None,
+        }
 
     df = df.copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    current = df[(df["timestamp"] >= date_range[0]) &
-                 (df["timestamp"] <= date_range[1])]
+    current = df[
+        (df["timestamp"] >= date_range[0]) & (df["timestamp"] <= date_range[1])
+    ]
 
     count = int(len(current))
     peak_hour = None
     peak_day = None
     if not current.empty:
         peak_hour = int(current["timestamp"].dt.hour.value_counts().idxmax())
-        peak_day = str(
-            current["timestamp"].dt.day_name().value_counts().idxmax())
+        peak_day = str(current["timestamp"].dt.day_name().value_counts().idxmax())
 
     duration = date_range[1] - date_range[0]
     prev_start = date_range[0] - duration
@@ -916,11 +964,13 @@ def _render_insights(
     with col1:
         _kpi_card(inc_kpi["label"], f"{inc_kpi['conteo']:,}", inc_kpi["delta"])
     with col2:
-        _kpi_card(trip_kpi["label"],
-                  f"{trip_kpi['conteo']:,}", trip_kpi["delta"])
+        _kpi_card(trip_kpi["label"], f"{trip_kpi['conteo']:,}", trip_kpi["delta"])
     with col3:
-        _kpi_card("Ventana de Cobertura",
-                  f"{date_range[0].date()} -> {date_range[1].date()}", None)
+        _kpi_card(
+            "Ventana de Cobertura",
+            f"{date_range[0].date()} -> {date_range[1].date()}",
+            None,
+        )
 
     zone_meta = _load_zone_metadata_v4()
 
@@ -946,58 +996,12 @@ def _render_insights(
         }
         headers = {"User-Agent": "cdmx-mobility-pulse/1.0"}
         try:
-            resp = requests.get(url, params=params,
-                                headers=headers, timeout=15)
+            resp = requests.get(url, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
             data = resp.json()
             return data.get("display_name")
         except Exception:
             return None
-
-    def _zone_table_with_geocode(series: pd.Series, value_name: str, zone_meta: pd.DataFrame | None = None) -> pd.DataFrame:
-        df = series.reset_index(name=value_name)
-        zone_key = _get_zone_key(df)
-        if not zone_key:
-            return df
-        # Eliminar duplicados antes de apply
-        df = df.loc[:, ~df.columns.duplicated()]
-
-        # Solo intentar obtener coordenadas de H3 si parece ser celda H3
-        sample_zone = df[zone_key].iloc[0] if not df.empty else None
-        is_h3 = sample_zone and isinstance(
-            sample_zone, str) and sample_zone[0].isdigit()
-
-        if is_h3:
-            centers = df[zone_key].apply(_h3_center)
-            df["lat"] = centers.apply(lambda x: x[0] if x else pd.NA)
-            df["lon"] = centers.apply(lambda x: x[1] if x else pd.NA)
-
-        if zone_meta is not None and not zone_meta.empty:
-            df = _merge_with_zone_meta(df, zone_meta, how="left")
-        if geocode_enabled:
-            cache = _load_geocode_cache()
-            df = df.merge(cache, left_on=zone_key,
-                          right_on="id_zona", how="left")
-            missing = df[df["address"].isna()].head(10)
-            new_rows = []
-            for _, row in missing.iterrows():
-                lat = row.get("lat")
-                lon = row.get("lon")
-                if pd.isna(lat) or pd.isna(lon):
-                    continue
-                address = _reverse_geocode(float(lat), float(lon))
-                if address:
-                    new_rows.append(
-                        {"id_zona": row.get(zone_key), "address": address})
-                time.sleep(1.0)
-            if new_rows:
-                cache = pd.concat([cache, pd.DataFrame(new_rows)],
-                                  ignore_index=True).drop_duplicates("id_zona")
-                _save_geocode_cache(cache)
-                if _get_zone_key(cache):
-                    df = df.drop(columns=["address"], errors="ignore")
-                    df = _merge_with_zone_meta(df, cache)
-        return df
 
     def _zone_label(row: pd.Series) -> str:
         parts = []
@@ -1032,8 +1036,9 @@ def _render_insights(
         if not lines:
             return
         st.markdown(f"{title}")
-        st.markdown("<div style='margin-bottom: 0.4rem;'></div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            "<div style='margin-bottom: 0.4rem;'></div>", unsafe_allow_html=True
+        )
         cols = st.columns(3)
         for idx, line in enumerate(lines):
             if ":" in line:
@@ -1042,8 +1047,9 @@ def _render_insights(
                 label, value = title, line
             with cols[idx % 3]:
                 _kpi_card(label.strip(), value.strip(), None)
-        st.markdown("<div style='margin-bottom: 0.6rem;'></div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            "<div style='margin-bottom: 0.6rem;'></div>", unsafe_allow_html=True
+        )
 
     insight_lines = []
     day_map = {
@@ -1056,17 +1062,17 @@ def _render_insights(
         "Sunday": "Domingo",
     }
     if inc_kpi["peak_hour"] is not None:
-        insight_lines.append(
-            f"Hora pico de incidentes: {inc_kpi['peak_hour']:02d}:00")
+        insight_lines.append(f"Hora pico de incidentes: {inc_kpi['peak_hour']:02d}:00")
     if inc_kpi["peak_day"] is not None:
         insight_lines.append(
-            f"Día más activo de incidentes: {day_map.get(inc_kpi['peak_day'], inc_kpi['peak_day'])}")
+            f"Día más activo de incidentes: {day_map.get(inc_kpi['peak_day'], inc_kpi['peak_day'])}"
+        )
     if trip_kpi["peak_hour"] is not None:
-        insight_lines.append(
-            f"Hora pico ECOBICI: {trip_kpi['peak_hour']:02d}:00")
+        insight_lines.append(f"Hora pico ECOBICI: {trip_kpi['peak_hour']:02d}:00")
     if trip_kpi["peak_day"] is not None:
         insight_lines.append(
-            f"Día más activo ECOBICI: {day_map.get(trip_kpi['peak_day'], trip_kpi['peak_day'])}")
+            f"Día más activo ECOBICI: {day_map.get(trip_kpi['peak_day'], trip_kpi['peak_day'])}"
+        )
 
     if insight_lines:
         st.markdown("Resumen ejecutivo")
@@ -1080,24 +1086,26 @@ def _render_insights(
             "📊",
             "Datos Insuficientes para Perspectivas",
             "La ventana de tiempo seleccionada no contiene suficientes datos.'t contain enough data points.",
-            "Intente expandir el rango de fechas o quitar filtros"
+            "Intente expandir el rango de fechas o quitar filtros",
         )
 
     if not incidents.empty and "id_zona" in incidents.columns:
-        zone_counts = incidents.groupby(
-            "id_zona", dropna=False).size().sort_values(ascending=False).head(3)
+        zone_counts = (
+            incidents.groupby("id_zona", dropna=False)
+            .size()
+            .sort_values(ascending=False)
+            .head(3)
+        )
         if not zone_counts.empty:
             st.markdown("Resumen por zona")
             cols = st.columns(len(zone_counts))
-            meta_zone_key = _get_zone_key(
-                zone_meta) if not zone_meta.empty else None
+            meta_zone_key = _get_zone_key(zone_meta) if not zone_meta.empty else None
             for col, (zone_id, count) in zip(cols, zone_counts.items()):
                 row = None
                 if meta_zone_key:
                     matching = zone_meta[zone_meta[meta_zone_key] == zone_id]
                     row = matching.iloc[0] if not matching.empty else None
-                zone_label = _zone_label(
-                    row) if row is not None else "Área desconocida"
+                zone_label = _zone_label(row) if row is not None else "Área desconocida"
                 with col:
                     _kpi_card(zone_label, f"{int(count):,}", None)
 
@@ -1117,14 +1125,21 @@ def _render_insights(
 
     acceso = analytics.get("accesoibility_zones", pd.DataFrame())
     if not acceso.empty and not zone_meta.empty:
-        zone_key = "id_zona" if "id_zona" in acceso.columns else (
-            "zone_id" if "zone_id" in acceso.columns else None)
+        zone_key = (
+            "id_zona"
+            if "id_zona" in acceso.columns
+            else ("zone_id" if "zone_id" in acceso.columns else None)
+        )
         if zone_key is None:
             acceso_meta = pd.DataFrame()
         else:
             acceso_meta = acceso.merge(
                 zone_meta.rename(
-                    columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"}),
+                    columns={
+                        "alcaldia_catalogo": "alcaldia",
+                        "colonia_catalogo": "colonia",
+                    }
+                ),
                 left_on=zone_key,
                 right_on="zone_id",
                 how="left",
@@ -1149,12 +1164,17 @@ def _render_insights(
                 .reset_index()
             )
             if not alc_summary.empty:
-                alc_summary["p25"] = acceso_meta.groupby("alcaldia", dropna=False)[
-                    "acceso_score"].quantile(0.25).values
-                alc_summary["p75"] = acceso_meta.groupby("alcaldia", dropna=False)[
-                    "acceso_score"].quantile(0.75).values
-                alc_summary = alc_summary.sort_values(
-                    "mean", ascending=False).head(10)
+                alc_summary["p25"] = (
+                    acceso_meta.groupby("alcaldia", dropna=False)["acceso_score"]
+                    .quantile(0.25)
+                    .values
+                )
+                alc_summary["p75"] = (
+                    acceso_meta.groupby("alcaldia", dropna=False)["acceso_score"]
+                    .quantile(0.75)
+                    .values
+                )
+                alc_summary = alc_summary.sort_values("mean", ascending=False).head(10)
                 notes = []
                 for _, row in alc_summary.head(6).iterrows():
                     mean_val = row.get("mean")
@@ -1183,11 +1203,13 @@ def _render_insights(
     if not incidents.empty and "timestamp" in incidents.columns:
         inc_ts = pd.to_datetime(incidents["timestamp"], errors="coerce")
         coverage_lines.append(
-            f"Cobertura de incidentes: {inc_ts.min().date()} -> {inc_ts.max().date()}")
+            f"Cobertura de incidentes: {inc_ts.min().date()} -> {inc_ts.max().date()}"
+        )
     if not trips.empty and "timestamp" in trips.columns:
         trip_ts = pd.to_datetime(trips["timestamp"], errors="coerce")
         coverage_lines.append(
-            f"Cobertura de viajes ECOBICI: {trip_ts.min().date()} -> {trip_ts.max().date()}")
+            f"Cobertura de viajes ECOBICI: {trip_ts.min().date()} -> {trip_ts.max().date()}"
+        )
     if coverage_lines:
         _render_card_list("Cobertura de datos", coverage_lines)
 
@@ -1213,15 +1235,19 @@ def _render_insights(
         }
         headers = {"User-Agent": "cdmx-mobility-pulse/1.0"}
         try:
-            resp = requests.get(url, params=params,
-                                headers=headers, timeout=15)
+            resp = requests.get(url, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
             data = resp.json()
             return data.get("display_name")
         except Exception:
             return None
 
-    def _zone_table(series: pd.Series, value_name: str, zone_meta: pd.DataFrame | None = None, geocode: bool = False) -> pd.DataFrame:
+    def _zone_table(
+        series: pd.Series,
+        value_name: str,
+        zone_meta: pd.DataFrame | None = None,
+        geocode: bool = False,
+    ) -> pd.DataFrame:
         df = series.reset_index(name=value_name)
         zone_key = _get_zone_key(df)
         if not zone_key:
@@ -1232,8 +1258,9 @@ def _render_insights(
         # Solo intentar obtener coordenadas de H3 si parece ser celda H3 (empieza con números)
         # De lo contrario, las coordenadas vendrán del merge con zone_meta
         sample_zone = df[zone_key].iloc[0] if not df.empty else None
-        is_h3 = sample_zone and isinstance(
-            sample_zone, str) and sample_zone[0].isdigit()
+        is_h3 = (
+            sample_zone and isinstance(sample_zone, str) and sample_zone[0].isdigit()
+        )
 
         if is_h3:
             centers = df[zone_key].apply(_h3_center)
@@ -1244,8 +1271,7 @@ def _render_insights(
             df = _merge_with_zone_meta(df, zone_meta, how="left")
         if geocode:
             cache = _load_geocode_cache()
-            df = df.merge(cache, left_on=zone_key,
-                          right_on="id_zona", how="left")
+            df = df.merge(cache, left_on=zone_key, right_on="id_zona", how="left")
             missing = df[df["address"].isna()].head(10)
             new_rows = []
             for _, row in missing.iterrows():
@@ -1255,15 +1281,16 @@ def _render_insights(
                     continue
                 address = _reverse_geocode(float(lat), float(lon))
                 if address:
-                    new_rows.append(
-                        {"id_zona": row.get(zone_key), "address": address})
+                    new_rows.append({"id_zona": row.get(zone_key), "address": address})
                 time.sleep(1.0)
             if new_rows:
-                cache = pd.concat([cache, pd.DataFrame(new_rows)],
-                                  ignore_index=True).drop_duplicates("id_zona")
+                cache = pd.concat(
+                    [cache, pd.DataFrame(new_rows)], ignore_index=True
+                ).drop_duplicates("id_zona")
                 _save_geocode_cache(cache)
                 df = df.drop(columns=["address"]).merge(
-                    cache, left_on=zone_key, right_on="id_zona", how="left")
+                    cache, left_on=zone_key, right_on="id_zona", how="left"
+                )
         return df
 
     # Note: geocode_enabled moved to Executive Brief tab
@@ -1280,16 +1307,21 @@ def _render_insights(
                 .agg(lambda x: x.mode().iloc[0] if not x.mode().empty else pd.NA)
                 .reset_index()
             )
-        zone_counts = incidents.groupby(
-            zone_key, dropna=False).size().sort_values(ascending=False).head(5)
+        zone_counts = (
+            incidents.groupby(zone_key, dropna=False)
+            .size()
+            .sort_values(ascending=False)
+            .head(5)
+        )
         total_inc = len(incidents)
         share = zone_counts.sum() / total_inc if total_inc else 0
         st.markdown(
-            f"Principales zonas de incidentes (principales 5 = {share:.1%} de incidentes)")
-        table = _zone_table(zone_counts, "incidentes",
-                            zone_meta, geocode=False)
+            f"Principales zonas de incidentes (principales 5 = {share:.1%} de incidentes)"
+        )
+        table = _zone_table(zone_counts, "incidentes", zone_meta, geocode=False)
         table = table.rename(
-            columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"})
+            columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"}
+        )
         table = table.drop(columns=["id_zona"], errors="ignore")
         notes = []
         used = set()
@@ -1303,7 +1335,9 @@ def _render_insights(
                     severity = "note-high"
                 elif ratio <= 0.05:
                     severity = "note-low"
-            body = f"Incidentes: {int(count):,}" if pd.notna(count) else "Incidentes: n/d"
+            body = (
+                f"Incidentes: {int(count):,}" if pd.notna(count) else "Incidentes: n/d"
+            )
             notes.append(
                 {
                     "title": label,
@@ -1316,7 +1350,8 @@ def _render_insights(
         principales_row = table.iloc[0] if not table.empty else None
         if principales_row is not None:
             st.markdown(
-                f"Punto caliente: {_zone_label(principales_row)} lidera el volumen de incidentes en esta ventana.")
+                f"Punto caliente: {_zone_label(principales_row)} lidera el volumen de incidentes en esta ventana."
+            )
 
     pressure = analytics.get("c5_pressure", pd.DataFrame())
     anomalies = analytics.get("c5_anomalies", pd.DataFrame())
@@ -1327,26 +1362,32 @@ def _render_insights(
 
     inc_zone_key = _get_zone_key(incidents)
     stops_zone_key = _get_zone_key(stops)
-    if pressure.empty and not incidents.empty and not stops.empty and inc_zone_key and stops_zone_key:
-        inc = incidents.groupby(
-            inc_zone_key, dropna=False).size().rename("Incidentes")
-        stp = stops.groupby(
-            stops_zone_key, dropna=False).size().rename("Paradas")
+    if (
+        pressure.empty
+        and not incidents.empty
+        and not stops.empty
+        and inc_zone_key
+        and stops_zone_key
+    ):
+        inc = incidents.groupby(inc_zone_key, dropna=False).size().rename("Incidentes")
+        stp = stops.groupby(stops_zone_key, dropna=False).size().rename("Paradas")
         pressure = (
             pd.concat([inc, stp], axis=1)
             .fillna(0)
-            .assign(incidents_per_stop=lambda df: df["Incidentes"] / (df["Paradas"] + 1))
+            .assign(
+                incidents_per_stop=lambda df: df["Incidentes"] / (df["Paradas"] + 1)
+            )
             .reset_index()
             .rename(columns={"index": "id_zona"})
         )
-
 
     if not pressure.empty:
         principales5 = pressure.sort_values("risk_z", ascending=False).head(5)
         if not zone_meta.empty:
             principales5 = _merge_with_zone_meta(principales5, zone_meta)
             principales5 = principales5.rename(
-                columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"})
+                columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"}
+            )
         notes = []
         used = set()
         for _, row in principales5.iterrows():
@@ -1380,13 +1421,13 @@ def _render_insights(
             )
         _render_notes("Prioridades inmediatas (zonas de riesgo)", notes)
 
-
     if not acceso.empty:
         low_acceso = acceso.sort_values("acceso_score", ascending=True).head(5)
         if not zone_meta.empty:
             low_acceso = _merge_with_zone_meta(low_acceso, zone_meta)
             low_acceso = low_acceso.rename(
-                columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"})
+                columns={"alcaldia_catalogo": "alcaldia", "colonia_catalogo": "colonia"}
+            )
         notes = []
         used = set()
         for _, row in low_acceso.iterrows():
@@ -1422,8 +1463,11 @@ def _render_insights(
     if not pressure.empty:
         principales = pressure.sort_values("risk_z", ascending=False).head(3)
         for _, row in principales.iterrows():
-            zone_label = row.get("alcaldia_catalogo") or row.get(
-                "alcaldia") or "Área desconocida"
+            zone_label = (
+                row.get("alcaldia_catalogo")
+                or row.get("alcaldia")
+                or "Área desconocida"
+            )
             actions.append(
                 {
                     "prioridad": "Alto",
@@ -1438,7 +1482,9 @@ def _render_insights(
             actions.append(
                 {
                     "prioridad": "Medio",
-                    "enfoque": row.get("alcaldia_catalogo") or row.get("alcaldia") or "Área desconocida",
+                    "enfoque": row.get("alcaldia_catalogo")
+                    or row.get("alcaldia")
+                    or "Área desconocida",
                     "accion": "Expandir cobertura de paradas / plan ultima milla",
                     "razon": f"Puntaje de acceso {row['acceso_score']:.2f}",
                 }
@@ -1485,10 +1531,12 @@ def _render_insights(
             prev_7_start = last_date - pd.Timedelta(days=13)
             prev_7_end = last_date - pd.Timedelta(days=7)
 
-            last7 = recent[(recent["date"] >= last_7_start)
-                           & (recent["date"] <= last_date)]
-            prev7 = recent[(recent["date"] >= prev_7_start)
-                           & (recent["date"] <= prev_7_end)]
+            last7 = recent[
+                (recent["date"] >= last_7_start) & (recent["date"] <= last_date)
+            ]
+            prev7 = recent[
+                (recent["date"] >= prev_7_start) & (recent["date"] <= prev_7_end)
+            ]
 
             # Detectar la clave de zona antes del groupby y eliminar duplicados
             zone_key = _get_zone_key(last7)
@@ -1499,20 +1547,28 @@ def _render_insights(
                     last7 = last7.loc[:, ~last7.columns.duplicated()]
                     prev7 = prev7.loc[:, ~prev7.columns.duplicated()]
 
-                last7_sum = last7.groupby(zone_key, dropna=False)[
-                    "count"].sum().rename("last7")
-                prev7_sum = prev7.groupby(zone_key, dropna=False)[
-                    "count"].sum().rename("prev7")
+                last7_sum = (
+                    last7.groupby(zone_key, dropna=False)["count"].sum().rename("last7")
+                )
+                prev7_sum = (
+                    prev7.groupby(zone_key, dropna=False)["count"].sum().rename("prev7")
+                )
                 delta = pd.concat([last7_sum, prev7_sum], axis=1).fillna(0)
-                delta["delta_pct"] = (
-                    delta["last7"] - delta["prev7"]) / (delta["prev7"] + 1)
-                delta = delta.reset_index().sort_values("delta_pct", ascending=False).head(10)
+                delta["delta_pct"] = (delta["last7"] - delta["prev7"]) / (
+                    delta["prev7"] + 1
+                )
+                delta = (
+                    delta.reset_index()
+                    .sort_values("delta_pct", ascending=False)
+                    .head(10)
+                )
 
                 if not zone_meta.empty:
                     right_key = _get_zone_key(zone_meta)
                     if right_key:
                         delta = delta.merge(
-                            zone_meta, left_on=zone_key, right_on=right_key, how="left")
+                            zone_meta, left_on=zone_key, right_on=right_key, how="left"
+                        )
 
                 notes = []
                 used = set()
@@ -1539,7 +1595,9 @@ def _render_insights(
                     notes.append(
                         {
                             "title": label,
-                            "body": " | ".join(parts) if parts else "Sin detalles adicionales.",
+                            "body": " | ".join(parts)
+                            if parts
+                            else "Sin detalles adicionales.",
                             "severity": severity,
                         }
                     )
@@ -1568,7 +1626,9 @@ def _render_insights(
                         notes.append(
                             {
                                 "title": str(row.get("alcaldia", "Alcaldía")),
-                                "body": f"Variación media: {pct:+.0%}" if pd.notna(pct) else "Sin detalles adicionales.",
+                                "body": f"Variación media: {pct:+.0%}"
+                                if pd.notna(pct)
+                                else "Sin detalles adicionales.",
                                 "severity": severity,
                             }
                         )
@@ -1676,7 +1736,9 @@ def _render_decision_intel(incidents: pd.DataFrame) -> None:
     zone_key = _get_zone_key(df)
     zone_meta = _load_zone_metadata_v4()
 
-    daily_total = df.groupby(df["timestamp"].dt.date).size().rename("count").reset_index()
+    daily_total = (
+        df.groupby(df["timestamp"].dt.date).size().rename("count").reset_index()
+    )
     daily_total["zscore"] = (daily_total["count"] - daily_total["count"].mean()) / (
         daily_total["count"].std(ddof=0) + 1e-6
     )
@@ -1718,7 +1780,9 @@ def _render_decision_intel(incidents: pd.DataFrame) -> None:
         last7_sum = last7.groupby(zone_key)["count"].sum().rename("last7")
         prev7_sum = prev7.groupby(zone_key)["count"].sum().rename("prev7")
         growth = pd.concat([last7_sum, prev7_sum], axis=1).fillna(0)
-        growth["delta_pct"] = (growth["last7"] - growth["prev7"]) / (growth["prev7"] + 1)
+        growth["delta_pct"] = (growth["last7"] - growth["prev7"]) / (
+            growth["prev7"] + 1
+        )
         growth = growth.reset_index().sort_values("delta_pct", ascending=False).head(6)
 
         if not zone_meta.empty:
@@ -1726,9 +1790,13 @@ def _render_decision_intel(incidents: pd.DataFrame) -> None:
 
         notes = []
         for _, row in growth.iterrows():
-            label = row.get("alcaldia") or row.get("colonia") or row.get(zone_key) or "Zona"
+            label = (
+                row.get("alcaldia") or row.get("colonia") or row.get(zone_key) or "Zona"
+            )
             pct = row.get("delta_pct", 0)
-            severity = "note-high" if pct >= 0.5 else "note-med" if pct >= 0.2 else "note-low"
+            severity = (
+                "note-high" if pct >= 0.5 else "note-med" if pct >= 0.2 else "note-low"
+            )
             notes.append(
                 {
                     "title": str(label),
@@ -1752,9 +1820,13 @@ def _render_decision_intel(incidents: pd.DataFrame) -> None:
 
         notes = []
         for _, row in persistence.iterrows():
-            label = row.get("alcaldia") or row.get("colonia") or row.get(zone_key) or "Zona"
+            label = (
+                row.get("alcaldia") or row.get("colonia") or row.get(zone_key) or "Zona"
+            )
             pct = row.get("persistence", 0)
-            severity = "note-high" if pct >= 0.5 else "note-med" if pct >= 0.3 else "note-low"
+            severity = (
+                "note-high" if pct >= 0.5 else "note-med" if pct >= 0.3 else "note-low"
+            )
             notes.append(
                 {
                     "title": str(label),
@@ -1864,13 +1936,23 @@ def _render_trends(incidents: pd.DataFrame, trips: pd.DataFrame) -> None:
     def _hourly(df: pd.DataFrame, label: str) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame(columns=["hour", "count", "serie"])
-        hourly = df.groupby(df["timestamp"].dt.hour).size().rename("count").reset_index()
+        hourly = (
+            df.groupby(df["timestamp"].dt.hour).size().rename("count").reset_index()
+        )
         hourly["serie"] = label
         return hourly.rename(columns={"timestamp": "hour"})
 
     hourly_df = _hourly(inc, "Incidentes")
 
-    day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    day_order = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
     day_map = {
         "Monday": "Lunes",
         "Tuesday": "Martes",
@@ -1884,8 +1966,19 @@ def _render_trends(incidents: pd.DataFrame, trips: pd.DataFrame) -> None:
     def _dow(df: pd.DataFrame, label: str) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame(columns=["day", "count", "serie"])
-        dow = df["timestamp"].dt.day_name().value_counts().reindex(day_order, fill_value=0)
-        return pd.DataFrame({"day": [day_map[d] for d in day_order], "count": dow.values, "serie": label})
+        dow = (
+            df["timestamp"]
+            .dt.day_name()
+            .value_counts()
+            .reindex(day_order, fill_value=0)
+        )
+        return pd.DataFrame(
+            {
+                "day": [day_map[d] for d in day_order],
+                "count": dow.values,
+                "serie": label,
+            }
+        )
 
     dow_df = _dow(inc, "Incidentes")
 
@@ -1984,7 +2077,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
     daily["date"] = pd.to_datetime(daily["date"])
     span_days = (daily["date"].max() - daily["date"].min()).days + 1
     if span_days < 21:
-        st.info("Se requieren al menos 21 dias de datos para entrenar y validar el modelo.")
+        st.info(
+            "Se requieren al menos 21 dias de datos para entrenar y validar el modelo."
+        )
         return
 
     daily = daily.set_index("date").asfreq("D", fill_value=0)
@@ -2032,7 +2127,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
         try:
             import xgboost as xgb
         except Exception:
-            st.error("XGBoost no esta instalado. Ejecuta: pip install xgboost scikit-learn")
+            st.error(
+                "XGBoost no esta instalado. Ejecuta: pip install xgboost scikit-learn"
+            )
             return
         model = xgb.XGBRegressor(
             n_estimators=400,
@@ -2070,7 +2167,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
         try:
             import lightgbm as lgb
         except Exception:
-            st.error("LightGBM no esta instalado. Ejecuta: pip install lightgbm scikit-learn")
+            st.error(
+                "LightGBM no esta instalado. Ejecuta: pip install lightgbm scikit-learn"
+            )
             return
         model = lgb.LGBMRegressor(
             n_estimators=400,
@@ -2107,7 +2206,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
         try:
             from catboost import CatBoostRegressor
         except Exception:
-            st.error("CatBoost no esta instalado. Ejecuta: pip install catboost scikit-learn")
+            st.error(
+                "CatBoost no esta instalado. Ejecuta: pip install catboost scikit-learn"
+            )
             return
         model = CatBoostRegressor(
             iterations=500,
@@ -2151,7 +2252,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
     nrmse = (rmse / avg_test) if avg_test > 0 else np.nan
     nmae = (mae / avg_test) if avg_test > 0 else np.nan
     denom = float(np.sum(np.abs(y_test)))
-    wmape = (np.sum(np.abs(y_test - y_pred_test)) / denom * 100) if denom > 0 else np.nan
+    wmape = (
+        (np.sum(np.abs(y_test - y_pred_test)) / denom * 100) if denom > 0 else np.nan
+    )
 
     def _fmt_pct(val: float) -> str:
         return "NA" if pd.isna(val) else f"{val:.1f}%"
@@ -2160,13 +2263,15 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
         [
             {
                 "Metrica": "RMSE",
-                "Valor": f"{rmse:,.2f}" + (f" (nRMSE {_fmt_pct(nrmse * 100)})" if not pd.isna(nrmse) else ""),
+                "Valor": f"{rmse:,.2f}"
+                + (f" (nRMSE {_fmt_pct(nrmse * 100)})" if not pd.isna(nrmse) else ""),
                 "Que mide": "Error tipico penalizando mas los errores grandes.",
                 "Guia (orientativa)": "nRMSE <10% excelente; 10-20% bueno; 20-30% regular; >30% debil.",
             },
             {
                 "Metrica": "MAE",
-                "Valor": f"{mae:,.2f}" + (f" (nMAE {_fmt_pct(nmae * 100)})" if not pd.isna(nmae) else ""),
+                "Valor": f"{mae:,.2f}"
+                + (f" (nMAE {_fmt_pct(nmae * 100)})" if not pd.isna(nmae) else ""),
                 "Que mide": "Error promedio absoluto (mas robusto a outliers).",
                 "Guia (orientativa)": "nMAE <10% excelente; 10-20% bueno; 20-30% regular; >30% debil.",
             },
@@ -2195,7 +2300,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
             "date": y_test.index,
             "y": y_test.values,
             "split": "test",
-            "y_pred": y_pred_test.values if hasattr(y_pred_test, "values") else y_pred_test,
+            "y_pred": y_pred_test.values
+            if hasattr(y_pred_test, "values")
+            else y_pred_test,
         }
     )
     train_test_df = pd.concat([train_df, test_df], ignore_index=True)
@@ -2251,11 +2358,15 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
         st.plotly_chart(fig, width="stretch", key="train_test")
 
     def _render_forecast_chart() -> None:
-        last_real = daily.loc[
-            daily.index >= (last_date - pd.Timedelta(days=13))
-        ].reset_index().rename(columns={"count": "y"})
+        last_real = (
+            daily.loc[daily.index >= (last_date - pd.Timedelta(days=13))]
+            .reset_index()
+            .rename(columns={"count": "y"})
+        )
         plot_real = last_real.assign(tipo="Real")
-        plot_forecast = forecast_df.rename(columns={"count": "y"}).assign(tipo="Pronostico")
+        plot_forecast = forecast_df.rename(columns={"count": "y"}).assign(
+            tipo="Pronostico"
+        )
 
         fig = go.Figure()
         fig.add_trace(
@@ -2344,7 +2455,9 @@ def _render_forecast_xgb(incidents: pd.DataFrame) -> None:
         )
 
 
-def _render_data_quality(data: dict[str, pd.DataFrame], analytics: dict[str, pd.DataFrame]) -> None:
+def _render_data_quality(
+    data: dict[str, pd.DataFrame], analytics: dict[str, pd.DataFrame]
+) -> None:
     st.subheader("Calidad y Procesamiento")
     with st.expander("Finalidad de esta vista", expanded=False):
         st.markdown(
@@ -2438,9 +2551,7 @@ def _render_data_quality(data: dict[str, pd.DataFrame], analytics: dict[str, pd.
     analytics_rows = []
     for key, df in analytics.items():
         status = "OK" if not df.empty else "VACIO"
-        analytics_rows.append(
-            {"Analitico": key, "Estado": status, "Filas": len(df)}
-        )
+        analytics_rows.append({"Analitico": key, "Estado": status, "Filas": len(df)})
     st.markdown("Estado de analiticos")
     st.dataframe(_display_df(pd.DataFrame(analytics_rows)), width="stretch")
 
@@ -2470,8 +2581,14 @@ def _render_data_quality(data: dict[str, pd.DataFrame], analytics: dict[str, pd.
         _display_df(
             pd.DataFrame(
                 [
-                    {"Grupo": "Procesados", "Ultima actualizacion": _latest_mtime(processed_paths)},
-                    {"Grupo": "Analiticos", "Ultima actualizacion": _latest_mtime(analytics_paths)},
+                    {
+                        "Grupo": "Procesados",
+                        "Ultima actualizacion": _latest_mtime(processed_paths),
+                    },
+                    {
+                        "Grupo": "Analiticos",
+                        "Ultima actualizacion": _latest_mtime(analytics_paths),
+                    },
                 ]
             )
         ),
@@ -2502,14 +2619,13 @@ def main() -> None:
     )
 
     # Load data with elegant loading message
-    with st.spinner('🔄 Analyzing mobility patterns...'):
+    with st.spinner("🔄 Analyzing mobility patterns..."):
         data = _load_processed()
         analytics = _load_analytics()
 
     incidents = data["incidentes"]
     if not incidents.empty and "timestamp" in incidents.columns:
-        incidents["timestamp"] = pd.to_datetime(
-            incidents["timestamp"], errors="coerce")
+        incidents["timestamp"] = pd.to_datetime(incidents["timestamp"], errors="coerce")
         min_date = incidents["timestamp"].min()
         max_date = incidents["timestamp"].max()
     else:
@@ -2521,7 +2637,7 @@ def main() -> None:
     date_range = st.sidebar.date_input(
         "Rango de fechas",
         (min_date, max_date),
-        help="Filtrar todos los datos dentro de este rango de fechas"
+        help="Filtrar todos los datos dentro de este rango de fechas",
     )
     if not isinstance(date_range, (tuple, list)) or len(date_range) != 2:
         st.info("Selecciona un intervalo de 2 fechas para continuar.")
@@ -2531,7 +2647,7 @@ def main() -> None:
         "Hora del día",
         hour_options,
         default=[],
-        help="Filtrar por horas específicas (vacío = todas las horas)"
+        help="Filtrar por horas específicas (vacío = todas las horas)",
     )
     day_options = [
         "Monday",
@@ -2546,7 +2662,7 @@ def main() -> None:
         "Día de la semana",
         day_options,
         default=[],
-        help="Filtrar por días específicos (vacío = todos los días)"
+        help="Filtrar por días específicos (vacío = todos los días)",
     )
 
     with st.sidebar.expander("Actualización de datos", expanded=False):
@@ -2554,7 +2670,7 @@ def main() -> None:
         run_ingest = st.checkbox(
             "Actualizar fuentes (ingesta)",
             value=False,
-            help="Requiere conexión a las fuentes; puede tardar varios minutos."
+            help="Requiere conexión a las fuentes; puede tardar varios minutos.",
         )
         sources = []
         if run_ingest:
@@ -2573,9 +2689,11 @@ def main() -> None:
         run_build = st.checkbox(
             "Recalcular analíticos",
             value=True,
-            help="Ejecuta estandarización y métricas."
+            help="Ejecuta estandarización y métricas.",
         )
-        confirm = st.checkbox("Confirmo que quiero ejecutar la actualización", value=False)
+        confirm = st.checkbox(
+            "Confirmo que quiero ejecutar la actualización", value=False
+        )
         if st.button("Actualizar ahora", disabled=not confirm):
             errors = []
             warnings = []
@@ -2584,20 +2702,32 @@ def main() -> None:
                     try:
                         if "C5" in sources:
                             from mobility_pulse.ingest.c5 import ingest_c5
+
                             ingest_c5()
                         if "GTFS" in sources:
                             from mobility_pulse.ingest.gtfs import ingest_gtfs
+
                             ingest_gtfs()
                         if "ECOBICI RT" in sources:
-                            from mobility_pulse.ingest.ecobici_rt import ingest_ecobici_rt
+                            from mobility_pulse.ingest.ecobici_rt import (
+                                ingest_ecobici_rt,
+                            )
+
                             ingest_ecobici_rt(snapshots=1, interval_sec=1)
                         if "ECOBICI trips" in sources:
-                            from mobility_pulse.ingest.ecobici_trips import ingest_ecobici_trips
+                            from mobility_pulse.ingest.ecobici_trips import (
+                                ingest_ecobici_trips,
+                            )
+
                             ingest_ecobici_trips(limit_rows=None)
                         if "GPS CDMX" in sources:
                             from mobility_pulse.ingest.gps_cdmx import ingest_gps_cdmx
+
                             gps_result = ingest_gps_cdmx()
-                            if hasattr(gps_result, "name") and gps_result.name == "no_gps_dataset_found.txt":
+                            if (
+                                hasattr(gps_result, "name")
+                                and gps_result.name == "no_gps_dataset_found.txt"
+                            ):
                                 warnings.append(
                                     "GPS CDMX: no se encontró un dataset en CKAN. "
                                     "Revisa palabras clave o carga un archivo manualmente."
@@ -2609,6 +2739,7 @@ def main() -> None:
                         from mobility_pulse.transform.standardize import standardize_all
                         from mobility_pulse.analytics.aggregates import build_analytics
                         from mobility_pulse.analytics.ppi import build_ppi
+
                         standardize_all()
                         build_analytics()
                         build_ppi()
@@ -2624,8 +2755,7 @@ def main() -> None:
                 st.cache_resource.clear()
                 st.rerun()
     date_tuple = (pd.Timestamp(date_range[0]), pd.Timestamp(date_range[1]))
-    incidents_filtered = _apply_filters(
-        data["incidentes"], date_tuple, hours, days)
+    incidents_filtered = _apply_filters(data["incidentes"], date_tuple, hours, days)
     trips_filtered = _apply_filters(data["viajes"], date_tuple, hours, days)
 
     _render_exec_header(incidents_filtered, trips_filtered, analytics)
@@ -2641,37 +2771,42 @@ def main() -> None:
     )
 
     with tabs[0]:
-        st.markdown('<div class="section-title">Resumen Ejecutivo</div>',
-                    unsafe_allow_html=True)
-        _render_exec_brief(incidents_filtered, trips_filtered, data["paradas"], date_tuple, analytics)
+        st.markdown(
+            '<div class="section-title">Resumen Ejecutivo</div>', unsafe_allow_html=True
+        )
+        _render_exec_brief(
+            incidents_filtered, trips_filtered, data["paradas"], date_tuple, analytics
+        )
 
     with tabs[1]:
-        st.markdown('<div class="section-title">Alertas y Prioridades</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Alertas y Prioridades</div>',
+            unsafe_allow_html=True,
+        )
         _render_decision_intel(incidents_filtered)
         with st.expander("Indice de Prioridad (detalle)", expanded=False):
             _render_ppi(analytics)
 
     with tabs[2]:
         st.markdown(
-            '<div class="section-title">Tendencias Operativas</div>', unsafe_allow_html=True)
+            '<div class="section-title">Tendencias Operativas</div>',
+            unsafe_allow_html=True,
+        )
         _render_trends(incidents_filtered, trips_filtered)
 
     with tabs[3]:
-        st.markdown('<div class="section-title">Pronostico</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Pronostico</div>', unsafe_allow_html=True
+        )
         _render_forecast_xgb(incidents_filtered)
 
     with tabs[4]:
-        st.markdown('<div class="section-title">Calidad y Procesamiento</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Calidad y Procesamiento</div>',
+            unsafe_allow_html=True,
+        )
         _render_data_quality(data, analytics)
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

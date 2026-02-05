@@ -69,28 +69,32 @@ def build_ppi() -> Path | None:
         LOGGER.warning("No incidents data available for PPI")
         return None
 
-    incidents_counts = incidents.groupby(
-        "zone_id", dropna=False).size().rename("incidents")
+    incidents_counts = (
+        incidents.groupby("zone_id", dropna=False).size().rename("incidents")
+    )
 
     exposure_source = None
     exposure_df = _load_optional(PROCESSED_DIR / "gtfs_stops.parquet")
     if exposure_df is not None and "zone_id" in exposure_df.columns:
-        exposure_counts = exposure_df.groupby(
-            "zone_id", dropna=False).size().rename("exposure")
+        exposure_counts = (
+            exposure_df.groupby("zone_id", dropna=False).size().rename("exposure")
+        )
         exposure_source = "gtfs_stops"
     else:
         trips_df = _load_optional(PROCESSED_DIR / "ecobici_trips.parquet")
         if trips_df is not None and "zone_id" in trips_df.columns:
-            exposure_counts = trips_df.groupby(
-                "zone_id", dropna=False).size().rename("exposure")
+            exposure_counts = (
+                trips_df.groupby("zone_id", dropna=False).size().rename("exposure")
+            )
             exposure_source = "ecobici_trips"
         else:
             exposure_counts = pd.Series(dtype=float, name="exposure")
 
     table = pd.concat([incidents_counts, exposure_counts], axis=1).fillna(0)
     table["incidents_z"] = _zscore(table["incidents"])
-    table["exposure_z"] = _zscore(
-        table["exposure"]) if not table["exposure"].empty else 0
+    table["exposure_z"] = (
+        _zscore(table["exposure"]) if not table["exposure"].empty else 0
+    )
     table["ppi"] = 0.7 * table["incidents_z"] + 0.3 * table["exposure_z"]
     table["exposure_source"] = exposure_source or "none"
     table = table.reset_index().rename(columns={"index": "zone_id"})

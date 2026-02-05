@@ -53,23 +53,25 @@ def ingest_ecobici_rt(snapshots: int = 1, interval_sec: int = 300) -> Path:
         LOGGER.info("Fetching ECOBICI GBFS root from %s", url)
         root = _fetch_json(url)
         timestamp = datetime.now().astimezone().isoformat()
-        root_path = json_dir / f"gbfs_root_{idx+1}.json"
+        root_path = json_dir / f"gbfs_root_{idx + 1}.json"
         root_path.write_text(json.dumps(root, indent=2), encoding="utf-8")
 
         feeds = _resolve_gbfs_links(root)
         station_info_url = feeds.get("station_information")
         station_status_url = feeds.get("station_status")
         if not station_info_url or not station_status_url:
-            raise RuntimeError("GBFS feed missing station_information or station_status")
+            raise RuntimeError(
+                "GBFS feed missing station_information or station_status"
+            )
 
         station_info = _fetch_json(station_info_url)
         station_status = _fetch_json(station_status_url)
 
-        (json_dir / f"station_information_{idx+1}.json").write_text(
+        (json_dir / f"station_information_{idx + 1}.json").write_text(
             json.dumps(station_info, indent=2),
             encoding="utf-8",
         )
-        (json_dir / f"station_status_{idx+1}.json").write_text(
+        (json_dir / f"station_status_{idx + 1}.json").write_text(
             json.dumps(station_status, indent=2),
             encoding="utf-8",
         )

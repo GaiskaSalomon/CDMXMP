@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _search_ckan(base_url: str, keywords: list[str], rows: int = 50) -> dict[str, Any]:
-    query = " OR ".join([f"\"{kw}\"" for kw in keywords])
+    query = " OR ".join([f'"{kw}"' for kw in keywords])
     params = {"q": query, "rows": rows}
     with requests.get(base_url, params=params, timeout=30) as response:
         response.raise_for_status()
@@ -49,14 +49,22 @@ def ingest_gps_cdmx() -> Path:
         elif isinstance(cfg.description, list):
             keyword_list = cfg.description
     if not keyword_list:
-        keyword_list = ["gps", "geolocalizacion", "trayectos", "recorridos", "movilidad"]
+        keyword_list = [
+            "gps",
+            "geolocalizacion",
+            "trayectos",
+            "recorridos",
+            "movilidad",
+        ]
 
     raw_dir = RAW_DIR / "gps"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     LOGGER.info("Searching CKAN for GPS datasets: %s", keyword_list)
     payload = _search_ckan(base_url, keyword_list)
-    (raw_dir / "ckan_search.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    (raw_dir / "ckan_search.json").write_text(
+        json.dumps(payload, indent=2), encoding="utf-8"
+    )
 
     results = payload.get("result", {}).get("results", [])
     pick = _pick_resource(results)
@@ -72,7 +80,9 @@ def ingest_gps_cdmx() -> Path:
     resource = pick["resource"]
     url = resource.get("url")
     fmt = str(resource.get("format", "")).lower()
-    filename = f"gps_cdmx.{fmt}" if fmt in {"csv", "geojson", "json"} else "gps_cdmx.data"
+    filename = (
+        f"gps_cdmx.{fmt}" if fmt in {"csv", "geojson", "json"} else "gps_cdmx.data"
+    )
     out_path = raw_dir / filename
 
     LOGGER.info("Downloading GPS candidate: %s", url)

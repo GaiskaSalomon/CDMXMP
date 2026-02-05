@@ -15,7 +15,8 @@ def check_python_version() -> bool:
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 10):
         print(
-            f"❌ Python {version.major}.{version.minor} detected. Requires Python 3.10+")
+            f"❌ Python {version.major}.{version.minor} detected. Requires Python 3.10+"
+        )
         return False
     print(f"✅ Python {version.major}.{version.minor}.{version.micro}")
     return True

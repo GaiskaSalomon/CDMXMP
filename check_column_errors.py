@@ -3,18 +3,17 @@
 """
 Script para verificar que no haya errores de columnas
 """
+
 import re
 
-with open('mobility_pulse/app/streamlit_app.py', 'r', encoding='utf-8') as f:
+with open("mobility_pulse/app/streamlit_app.py", "r", encoding="utf-8") as f:
     content = f.read()
 
 # Buscar posibles problemas
 issues = []
 
 # Nombres de columnas traducidos que no deberían estar
-spanish_columns = [
-    'fecha', 'mes', 'día', 'hora', 'conteo'
-]
+spanish_columns = ["fecha", "mes", "día", "hora", "conteo"]
 
 for col in spanish_columns:
     # Buscar patrones de acceso a columnas con estos nombres
@@ -23,13 +22,13 @@ for col in spanish_columns:
         f"\\['{col}'\\]",
         f'\\("{col}"\\)',
     ]
-    
+
     for pattern in patterns:
         matches = list(re.finditer(pattern, content))
         if matches:
             for match in matches:
                 # Obtener línea
-                line_num = content[:match.start()].count('\n') + 1
+                line_num = content[: match.start()].count("\n") + 1
                 issues.append(f"Línea {line_num}: Usa '{col}' (debería ser en inglés)")
 
 if issues:

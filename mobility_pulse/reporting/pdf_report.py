@@ -39,7 +39,6 @@ def _build_charts(output_dir: Path) -> dict[str, Path]:
     c5_dow_total = _load(ANALYTICS_DIR / "c5_dow_total.parquet")
     access = _load(ANALYTICS_DIR / "accessibility_zones.parquet")
     pressure = _load(ANALYTICS_DIR / "c5_pressure.parquet")
-    anomalies = _load(ANALYTICS_DIR / "c5_anomalies.parquet")
 
     if not c5_monthly.empty:
         total = c5_monthly.groupby("month", dropna=False)["count"].sum().reset_index()
@@ -49,14 +48,20 @@ def _build_charts(output_dir: Path) -> dict[str, Path]:
             charts["c5_monthly"] = chart_path
 
     if not c5_dow_total.empty:
-        fig = px.bar(c5_dow_total, x="day_of_week", y="count", title="Incidents by day of week")
+        fig = px.bar(
+            c5_dow_total, x="day_of_week", y="count", title="Incidents by day of week"
+        )
         chart_path = output_dir / "c5_dow.png"
         if _write_plot(fig, chart_path):
             charts["c5_dow"] = chart_path
 
         if not access.empty and "travel_time_min" in access.columns:
-            bucket_counts = access["iso_bucket"].value_counts().reindex(
-                ["<=5", "5-10", "10-15", "15-30", "30-60", "60+"], fill_value=0
+            bucket_counts = (
+                access["iso_bucket"]
+                .value_counts()
+                .reindex(
+                    ["<=5", "5-10", "10-15", "15-30", "30-60", "60+"], fill_value=0
+                )
             )
             bucket_df = bucket_counts.reset_index()
             bucket_df.columns = ["bucket", "count"]
@@ -83,7 +88,9 @@ def _build_charts(output_dir: Path) -> dict[str, Path]:
         try:
             import h3
 
-            centers = heat["zone_id"].apply(lambda cell: h3.cell_to_latlng(cell) if cell else None)
+            centers = heat["zone_id"].apply(
+                lambda cell: h3.cell_to_latlng(cell) if cell else None
+            )
         except Exception:
             centers = heat["zone_id"].apply(lambda cell: None)
         heat["lat"] = centers.apply(lambda x: x[0] if x else pd.NA)
@@ -124,7 +131,9 @@ def _build_charts(output_dir: Path) -> dict[str, Path]:
         try:
             import h3
 
-            centers = heat["zone_id"].apply(lambda cell: h3.cell_to_latlng(cell) if cell else None)
+            centers = heat["zone_id"].apply(
+                lambda cell: h3.cell_to_latlng(cell) if cell else None
+            )
         except Exception:
             centers = heat["zone_id"].apply(lambda cell: None)
         heat["lat"] = centers.apply(lambda x: x[0] if x else pd.NA)
@@ -196,7 +205,9 @@ def generate_pdf_report(output_path: Path | None = None) -> Path:
         from reportlab.lib.units import inch
         from reportlab.pdfgen import canvas
     except ImportError as exc:
-        raise RuntimeError("reportlab is required for PDF generation. Install it with `pip install reportlab`.") from exc
+        raise RuntimeError(
+            "reportlab is required for PDF generation. Install it with `pip install reportlab`."
+        ) from exc
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     output = output_path or (REPORTS_DIR / "mobility_report.pdf")
     assets_dir = REPORTS_DIR / "assets"
@@ -215,7 +226,11 @@ def generate_pdf_report(output_path: Path | None = None) -> Path:
     c.setFont("Helvetica", 12)
     c.drawString(1 * inch, height - 1.55 * inch, "Executive Mobility Report")
     c.setFont("Helvetica", 9)
-    c.drawString(1 * inch, height - 1.85 * inch, "Generated automatically from open data analytics.")
+    c.drawString(
+        1 * inch,
+        height - 1.85 * inch,
+        "Generated automatically from open data analytics.",
+    )
     c.setFillColorRGB(0, 0, 0)
     c.showPage()
 
@@ -263,7 +278,7 @@ def generate_pdf_report(output_path: Path | None = None) -> Path:
                 elif val >= 0.4:
                     color = (0.95, 0.62, 0.13)  # amber
                 else:
-                    color = (0.86, 0.2, 0.2)    # red
+                    color = (0.86, 0.2, 0.2)  # red
             else:
                 if val >= 2.0:
                     color = (0.86, 0.2, 0.2)
@@ -280,7 +295,13 @@ def generate_pdf_report(output_path: Path | None = None) -> Path:
         y -= 0.22 * inch
 
     if "risk_map" in charts:
-        c.drawImage(str(charts["risk_map"]), 1 * inch, y - 3.2 * inch, width=6.5 * inch, height=3.0 * inch)
+        c.drawImage(
+            str(charts["risk_map"]),
+            1 * inch,
+            y - 3.2 * inch,
+            width=6.5 * inch,
+            height=3.0 * inch,
+        )
     c.showPage()
 
     y = height - 1 * inch
@@ -288,7 +309,13 @@ def generate_pdf_report(output_path: Path | None = None) -> Path:
         if y < 2.5 * inch:
             c.showPage()
             y = height - 1 * inch
-        c.drawImage(str(chart_path), 1 * inch, y - 3.5 * inch, width=6.5 * inch, height=3.2 * inch)
+        c.drawImage(
+            str(chart_path),
+            1 * inch,
+            y - 3.5 * inch,
+            width=6.5 * inch,
+            height=3.2 * inch,
+        )
         y -= 3.7 * inch
 
     c.save()
@@ -331,7 +358,9 @@ def generate_html_report(output_path: Path | None = None) -> Path:
         f"<h3>{name.replace('_', ' ').title()}</h3><img src='assets/{path.name}' style='max-width:100%;'/>"
         for name, path in charts.items()
     )
-    narrative_blocks = "".join(f"<li>{_safe_text(line)}</li>" for line in narrative) or "<li>n/a</li>"
+    narrative_blocks = (
+        "".join(f"<li>{_safe_text(line)}</li>" for line in narrative) or "<li>n/a</li>"
+    )
 
     html = f"""
     <html>

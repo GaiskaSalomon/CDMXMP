@@ -10,7 +10,9 @@ from shapely.geometry import Point
 from mobility_pulse.config import DEFAULT_H3_RESOLUTION
 
 
-def to_geodataframe(df: pd.DataFrame, lat_col: str = "lat", lon_col: str = "lon") -> gpd.GeoDataFrame:
+def to_geodataframe(
+    df: pd.DataFrame, lat_col: str = "lat", lon_col: str = "lon"
+) -> gpd.GeoDataFrame:
     """Convert a DataFrame with lat/lon columns to a GeoDataFrame.
 
     Creates Point geometries from coordinate columns and sets CRS to EPSG:4326 (WGS84).
