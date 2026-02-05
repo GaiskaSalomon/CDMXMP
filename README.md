@@ -67,6 +67,25 @@ Vistas:
 Actualizacion de datos:
 - En la barra lateral puedes ejecutar ingestas y reconstruccion de tablas analiticas.
 
+## Capturas del dashboard
+
+### Resumen Ejecutivo
+![Resumen Ejecutivo (1)](docs/screenshots/01_r_e.jpg)
+![Resumen Ejecutivo (2)](docs/screenshots/02_r_e.jpg)
+
+### Alertas y Prioridades
+![Alertas y Prioridades](docs/screenshots/03_a_p.jpg)
+
+### Tendencias Operativas
+![Tendencias Operativas](docs/screenshots/04_t_o.jpg)
+
+### Pronostico
+![Pronostico (1)](docs/screenshots/06_p.jpg)
+![Pronostico (2)](docs/screenshots/07_p.jpg)
+
+### Calidad y Procesamiento
+![Calidad y Procesamiento](docs/screenshots/08_c_p.jpg)
+
 ## Estructura de carpetas
 - `data/raw/`: datos descargados
 - `data/processed/`: datos limpios (parquet)
