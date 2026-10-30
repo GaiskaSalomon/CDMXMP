@@ -94,3 +94,6 @@ nul
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Training artifacts
+catboost_info/
